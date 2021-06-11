@@ -1,32 +1,9 @@
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
+import Messenger from "../components/messenger"
 
 export default function Home() {
-
-  //POST Request to sendapi
-  // const sendMessage = (event) => {
-  //   event.preventDefault();
-
-  //   fetch(
-  //     'https://graph.facebook.com/v10.0/me/messages?access_token='+ process.env.PAGE_ACCESS_TOKEN,
-  //     {
-  //       body: JSON.stringify({
-  //         "recipient": {
-  //           "id": "2589422804515413"
-  //         },
-  //         "message": {
-  //           "text": event.target.name.value
-  //         }
-  //       }),
-  //       header: {
-  //         'Content-Type': 'application/json'
-  //       },
-  //       method: 'POST'
-  //     }
-  //   )
-  // }
-
   return (
     <div className={styles.container}>
       <Head>
@@ -36,6 +13,14 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
+        <Messenger />
+        <form method="POST" action="/api/profile">
+          <h3>Setup profile API :</h3>
+          <button type="submit">Submit</button>
+        </form>
+
+      </main>
+      {/* <main className={styles.main}>
         <form action="/api/message" method="POST">
           <label htmlFor="message">
             Message:
@@ -43,7 +28,7 @@ export default function Home() {
           </label>
           <input type="submit" value="Submit" />
         </form>
-      </main>
+      </main> */}
 
       <footer className={styles.footer}>
         <a

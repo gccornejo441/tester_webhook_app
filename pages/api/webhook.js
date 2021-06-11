@@ -1,4 +1,5 @@
-import request from 'request';
+import request from "request";
+import config from "../../services/config";
 
 export default function handler(req, res) {
   if (req.method == "POST") {
@@ -10,12 +11,12 @@ export default function handler(req, res) {
 
       body.entry.forEach((entry) => {
         let webhook_event = entry.messaging[0];
-        console.log(webhook_event);
+        console.log("Webhook Event: ", webhook_event);
 
         // Get the sender PSID
         let sender_psid = webhook_event.sender.id;
         console.log("Sender PSID: " + sender_psid);
-
+        console.log("webhookeventmessage: ", webhook_event.message)
         // Check if the event is a message or postback and
         // pass the event to the appropriate handler function
         if (webhook_event.message) {
@@ -52,67 +53,71 @@ export default function handler(req, res) {
   }
 }
 
-function handleMessage(sender_psid, received_message) {
-  let response;
-
-  // Checks if the message contains text
-  if (received_message.text) {
-    // Create the payload for a basic text message, which
-    // will be added to the body of our request to the Send API
-    response = {
-      text: `You sent the message: "${received_message.text}". Now send me an attachment!`,
-    };
-  } else if (received_message.attachments) {
-    // Get the URL of the message attachment
-    let attachment_url = received_message.attachments[0].payload.url;
-    response = {
-      attachment: {
-        type: "template",
-        payload: {
-          template_type: "generic",
-          elements: [
-            {
-              title: "Is this the right picture?",
-              subtitle: "Tap a button to answer.",
-              image_url: attachment_url,
-              buttons: [
-                {
-                  type: "postback",
-                  title: "Yes!",
-                  payload: "yes",
-                },
-                {
-                  type: "postback",
-                  title: "No!",
-                  payload: "no",
-                },
-              ],
-            },
-          ],
-        },
-      },
-    };
-  }
-
-  // Send the response message
-  callSendAPI(sender_psid, response);
-}
-
 function handlePostback(sender_psid, received_postback) {
   let response;
 
   // Get the payload for the postback
+
   let payload = received_postback.payload;
 
   // Set the response based on the postback payload
-  if (payload === "yes") {
-    response = { text: "Thanks!" };
-  } else if (payload === "no") {
-    response = { text: "Oops, try sending another image." };
-  }
+  payload === "MORE_POSTBACK_PAYLOAD"
+    ? (response = { text: config.about })
+    : payload === "SERVICES_POSTBACK_PAYLOAD"
+    ? (response = { text: config.services })
+    : (response = { text: config.moreInfo });
+
   // Send the message to acknowledge the postback
   callSendAPI(sender_psid, response);
 }
+
+function handleMessage(sender_psid, received_message) {
+  let response;
+  // if (received_message)
+  if (received_message.text) {
+    response = {
+      text: received_message.text,
+      attachments: [
+        {
+          type: "fallback",
+          payload: {
+            text: "MORE_POSTBACK_PAYLOAD",
+          },
+        },
+      ],
+    };
+  }
+  // Send the response message
+  callSendAPI(sender_psid, response);
+}
+
+// function callSendAPI(sender_psid, response) {
+//   // Construct the message body
+//   let request_body = {
+//     recipient: {
+//       id: sender_psid,
+//     },
+//     message: response,
+//     persona_id: config.personas.id,
+//   };
+
+//   // Send the HTTP request to the Messenger Platform
+//   request(
+//     {
+//       uri: "https://graph.facebook.com/me/messages",
+//       qs: { access_token: config.access_token },
+//       method: "POST",
+//       json: request_body,
+//     },
+//     (err, res, body) => {
+//       if (!err) {
+//         console.log("message sent!");
+//       } else {
+//         console.error("Unable to send message:" + err);
+//       }
+//     }
+//   );
+// }
 
 function callSendAPI(sender_psid, response) {
   // Construct the message body
@@ -121,19 +126,22 @@ function callSendAPI(sender_psid, response) {
       id: sender_psid,
     },
     message: response,
+    persona_id: config.personas.id,
   };
 
   // Send the HTTP request to the Messenger Platform
   request(
     {
-      uri: "https://graph.facebook.com/v2.6/me/messages",
-      qs: { access_token: process.env.PAGE_ACCESS_TOKEN },
+      uri: "https://graph.facebook.com/v11.0/me/messages",
+      qs: {
+        access_token: config.pageAccesToken,
+      },
       method: "POST",
       json: request_body,
     },
     (err, res, body) => {
       if (!err) {
-        console.log("message sent!");
+        console.log(`message sent by persona id:${config.personas.id}`);
       } else {
         console.error("Unable to send message:" + err);
       }
