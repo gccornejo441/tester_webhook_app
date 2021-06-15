@@ -1,5 +1,5 @@
-import request from 'request';
-const config = require('../../services/config')
+import request from "request";
+const config = require("../../services/config");
 
 export default function handler(req, res) {
   if (req.method == "POST") {
@@ -9,24 +9,22 @@ export default function handler(req, res) {
       //Gets the message. entry.message is a an array, but
       // will only ever contain one message, so we get indext 0
 
-      body.entry.forEach(function(entry) {
-
+      body.entry.forEach(function (entry) {
         // Gets the body of the webhook event
         let webhook_event = entry.messaging[0];
-      
+        console.log(webhook_event);
+
         // Get the sender PSID
         let sender_psid = webhook_event.sender.id;
-        console.log('Sender PSID: ' + sender_psid);
-      
+        console.log("Sender PSID: " + sender_psid);
+
         // Check if the event is a message or postback and
         // pass the event to the appropriate handler function
-        console.log("webhooe_evet", webhook_event)
         if (webhook_event.message) {
-          handleMessage(sender_psid, webhook_event.message);        
+          handleMessage(sender_psid, webhook_event.message);
         } else if (webhook_event.postback) {
           handlePostback(sender_psid, webhook_event.postback);
         }
-        
       });
       res.status(200).send("EVENT_RECEIVED");
     } else {
@@ -74,12 +72,28 @@ function firstTrait(nlp, name) {
 }
 
 function handleMessage(sender_psid, message) {
+  // let textMessage = message.text.toLowerCase();
+
+  // This if statement is used to pickout help request.
+  // if (textMessage.includes("help")) {
+  //   callSendAPI(sender_psid, { text: config.services });
+  //   return;
+  // }
+
+  let messages = [];
+  let i;
+
   // check greeting is here and is confident
-  const greeting = firstTrait(message.nlp, 'wit$greetings');
-  if (greeting && greeting.confidence > 0.8) {
-    callSendAPI(sender_psid, { "text": config.greeting });
-  } else { 
-    callSendAPI(sender_psid, { "text": config.moreInfo });
+  const greeting = firstTrait(message.nlp, "wit$greetings");
+  if (greeting && greeting.confidence > 0.8)  {
+    callSendAPI(sender_psid, { text: config.greeting });
+  } else {
+    messages.push(`"${message.text}"`, "string two", "string three");
+    for ( i in messages ) {
+      // console.log("Messages to be printed: ",messages[i]);
+    
+    callSendAPI(sender_psid, { text: messages[i] });
+    }
   }
 }
 
@@ -88,38 +102,38 @@ function handlePostback(sender_psid, received_postback) {
 
   // Get the payload for the postback
   let payload = received_postback.payload;
-  
+
   // Set the response based on the postback payload
-  payload === "MORE_POSTBACK_PAYLOAD" ? response = { text: config.about } : payload === "SERVICES_POSTBACK_PAYLOAD" ? response = { text: config.services } : response = { text: config.moreInfo };
-  
+  payload === "MORE_POSTBACK_PAYLOAD"
+    ? (response = { text: config.about })
+    : payload === "SERVICES_POSTBACK_PAYLOAD"
+    ? (response = { text: config.services })
+    : (response = { text: config.moreInfo });
+
   // Send the message to acknowledge the postback
   callSendAPI(sender_psid, response);
 }
 
 function callSendAPI(sender_psid, response) {
   // Construct the message body
-
   let request_body = {
     recipient: {
-      id: sender_psid
+      id: sender_psid,
     },
     message: response,
-    persona_id: config.personas.id,
-  }
-
+    persona_id: config.personas.id
+  };
   // Send the HTTP request to the Messenger Platform
   request(
     {
-      uri: "https://graph.facebook.com/v11.0/me/messages",
-      qs: {
-        access_token: config.pageAccesToken,
-      },
+      uri: "https://graph.facebook.com/v10.0/me/messages",
+      qs: { access_token: config.pageAccessToken },
       method: "POST",
       json: request_body,
     },
     (err, res, body) => {
       if (!err) {
-        console.log(`message sent by persona id:${config.personas.id}`);
+        console.log("message sent!");
       } else {
         console.error("Unable to send message:" + err);
       }
